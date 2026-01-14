@@ -36,7 +36,7 @@ export function generateWhatsAppLink(invoice, storeInfo, customerWa = null) {
     // Header
     message += '*INVOICE*\n';
     message += '========================\n';
-    message += '*' + (storeInfo?.store_name || 'Toko') + '* Digital Services • Web Dev • Print\n';
+    message += '*' + (storeInfo?.store_name || 'Toko') + '\n';
     if (storeInfo?.address) {
         message += '> ' + storeInfo.address + '\n';
     }
@@ -71,9 +71,9 @@ export function generateWhatsAppLink(invoice, storeInfo, customerWa = null) {
 
     // Footer
     message += '========================\n';
-    message += '> Terima kasih atas kepercayaan Anda. Barang yang dibeli sudah sah. Minta rela, minta halal.\n';
+    message += '> Terima kasih sudah mendukung produk kami! Sampai jumpa di transaksi selanjutnya!\n';
     message += '\n';
-    message += '_Powered by SI-ACIL by Mas Alfy_';
+    message += '_Powered by SI-ACIL_';
 
     // Encode message for URL
     const encodedMessage = encodeURIComponent(message);
