@@ -11,7 +11,7 @@
  * 3. Execute as: Me, Who has access: Anyone
  * 4. Copy URL yang muncul dan paste di bawah
  */
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbwordP868PjT2okQHDvCgWdlq9Q71q4UtuhkFCF1lzgVFYDX8HOysCvmsl1U-Hc6zNZ/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyMHobHQE2KzFZjLUJfNM2OA0_DmIDGjdsv6mImu2BoGooNdWJwEQ26H0AznrnF3uYxJA/exec';
 
 const API_URL_KEY = 'SI_ACIL_API_URL';
 const USER_DATA_KEY = 'SI_ACIL_USER_DATA';
