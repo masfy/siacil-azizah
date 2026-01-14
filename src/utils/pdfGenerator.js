@@ -258,11 +258,9 @@ export async function generateInvoicePdf(invoice, storeInfo) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0);
-    doc.text('Terima kasih atas kepercayaan Anda.', pageWidth / 2, yPos, { align: 'center' });
+    doc.text('Terima kasih sudah mendukung produk kami!', pageWidth / 2, yPos, { align: 'center' });
     yPos += lineHeight;
-    doc.text('Barang yang dibeli sudah sah.', pageWidth / 2, yPos, { align: 'center' });
-    yPos += lineHeight + 2;
-    doc.text('Barakallah! Minta rela.', pageWidth / 2, yPos, { align: 'center' });
+    doc.text('Sampai jumpa di transaksi selanjutnya!', pageWidth / 2, yPos, { align: 'center' });
     yPos += lineHeight + 2;
 
     doc.setFontSize(6);
