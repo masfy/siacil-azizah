@@ -72,7 +72,7 @@ export default function LoginPage() {
                     />
                     <h1 className="text-3xl font-bold text-gray-900 mb-1">SI-ACIL</h1>
                     <p className="text-gray-500 text-sm">Sistem Aplikasi Catat Invoice Lengkap</p>
-                    <p className="text-gray-400 text-xs mt-1">untuk UMKM Kalimantan Selatan</p>
+                    <p className="text-gray-400 text-xs mt-1">untuk UMKM</p>
                 </div>
 
                 {/* Login Card */}
