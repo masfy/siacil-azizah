@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Modal({
     isOpen,
@@ -28,7 +29,7 @@ export default function Modal({
         lg: 'max-w-lg',
     };
 
-    return (
+    const modalContent = (
         <div className="modal-overlay animate-fade-in" onClick={onClose}>
             <div
                 className={`modal-content animate-slide-up ${sizes[size]} ${className}`}
@@ -55,4 +56,9 @@ export default function Modal({
             </div>
         </div>
     );
+
+    // Render modal at the root level to avoid stacking context issues
+    return typeof document !== 'undefined' 
+        ? createPortal(modalContent, document.body)
+        : modalContent;
 }
