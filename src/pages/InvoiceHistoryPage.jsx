@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, Modal, Button } from '../components/ui';
 import { DocumentTextIcon, WhatsAppIcon, PrinterIcon } from '../components/Icons';
-import { getInvoices } from '../services/api';
+import { getInvoices, updateInvoiceStatus } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { generateInvoicePdf } from '../utils/pdfGenerator';
+import { generateInvoicePdf, previewInvoicePdf } from '../utils/pdfGenerator';
 import { generateWhatsAppLink } from '../utils/whatsapp';
 
 export default function InvoiceHistoryPage() {
@@ -11,6 +11,7 @@ export default function InvoiceHistoryPage() {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     useEffect(() => {
         loadInvoices();
@@ -80,6 +81,15 @@ export default function InvoiceHistoryPage() {
         generateInvoicePdf(fixedInvoice, user);
     };
 
+    const handlePreviewPdf = (invoice) => {
+        // Create a fixed invoice object with correct total
+        const fixedInvoice = {
+            ...invoice,
+            total_amount: calculateTotal(invoice)
+        };
+        previewInvoicePdf(fixedInvoice, user);
+    };
+
     const handleWhatsApp = (invoice) => {
         // Create a fixed invoice object with correct total
         const fixedInvoice = {
@@ -88,6 +98,31 @@ export default function InvoiceHistoryPage() {
         };
         const link = generateWhatsAppLink(fixedInvoice, user, invoice.customer_wa);
         window.open(link, '_blank');
+    };
+
+    const togglePaymentStatus = async (invoice) => {
+        const newStatus = invoice.payment_status === 'Lunas' ? 'Belum Lunas' : 'Lunas';
+        setUpdatingStatus(true);
+        try {
+            const response = await updateInvoiceStatus(invoice.invoice_id, newStatus);
+            if (response.success) {
+                // Update local state
+                const updatedInvoices = invoices.map(inv => 
+                    inv.invoice_id === invoice.invoice_id 
+                        ? { ...inv, payment_status: newStatus } 
+                        : inv
+                );
+                setInvoices(updatedInvoices);
+                if (selectedInvoice && selectedInvoice.invoice_id === invoice.invoice_id) {
+                    setSelectedInvoice({ ...selectedInvoice, payment_status: newStatus });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to update status:', error);
+            alert('Gagal mengubah status: ' + error.message);
+        } finally {
+            setUpdatingStatus(false);
+        }
     };
 
     return (
@@ -139,7 +174,12 @@ export default function InvoiceHistoryPage() {
                                         <p className="text-green-600 text-xs mt-1">📱 {invoice.customer_wa}</p>
                                     )}
                                 </div>
-                                <p className="text-gray-900 font-bold">{formatCurrency(calculateTotal(invoice))}</p>
+                                <div className="text-right">
+                                    <p className="text-gray-900 font-bold">{formatCurrency(calculateTotal(invoice))}</p>
+                                    <span className={`text-xs px-2 py-1 rounded-full inline-block mt-1 ${invoice.payment_status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {invoice.payment_status || 'Belum Lunas'}
+                                    </span>
+                                </div>
                             </div>
                         </Card>
                     ))}
@@ -170,6 +210,16 @@ export default function InvoiceHistoryPage() {
                                 <span className="text-gray-500">Tanggal</span>
                                 <span className="font-medium text-gray-900">{formatDate(selectedInvoice.date)}</span>
                             </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                <span className="text-gray-500">Status Pembayaran</span>
+                                <button 
+                                    onClick={() => togglePaymentStatus(selectedInvoice)}
+                                    disabled={updatingStatus}
+                                    className={`text-sm px-3 py-1 rounded-full font-medium transition-colors ${selectedInvoice.payment_status === 'Lunas' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'} ${updatingStatus ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {updatingStatus ? 'Menyimpan...' : (selectedInvoice.payment_status || 'Belum Lunas')}
+                                </button>
+                            </div>
                         </div>
 
                         <div>
@@ -191,14 +241,18 @@ export default function InvoiceHistoryPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-3 mt-4">
                             <Button variant="success" onClick={() => handleWhatsApp(selectedInvoice)}>
                                 <WhatsAppIcon className="w-5 h-5" />
-                                WhatsApp
+                                WA
+                            </Button>
+                            <Button variant="secondary" onClick={() => handlePreviewPdf(selectedInvoice)}>
+                                <DocumentTextIcon className="w-5 h-5" />
+                                Preview
                             </Button>
                             <Button variant="gradient" onClick={() => handlePdf(selectedInvoice)}>
                                 <PrinterIcon className="w-5 h-5" />
-                                Cetak PDF
+                                Cetak
                             </Button>
                         </div>
                     </div>
