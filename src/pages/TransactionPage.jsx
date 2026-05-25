@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button, Input, Card, Modal } from '../components/ui';
-import { PlusIcon, TrashIcon, MinusIcon, WhatsAppIcon, PrinterIcon, CheckIcon } from '../components/Icons';
+import { PlusIcon, TrashIcon, MinusIcon, WhatsAppIcon, PrinterIcon, CheckIcon, DocumentTextIcon } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { addInvoice, getProducts } from '../services/api';
-import { generateInvoicePdf } from '../utils/pdfGenerator';
+import { generateInvoicePdf, previewInvoicePdf } from '../utils/pdfGenerator';
 import { generateWhatsAppLink } from '../utils/whatsapp';
 
 export default function TransactionPage() {
@@ -128,6 +128,11 @@ export default function TransactionPage() {
         generateInvoicePdf(savedInvoice, user);
     };
 
+    const handlePreviewPdf = () => {
+        if (!savedInvoice) return;
+        previewInvoicePdf(savedInvoice, user);
+    };
+
     const handleWhatsApp = () => {
         if (!savedInvoice) return;
         const link = generateWhatsAppLink(savedInvoice, user, customerWa);
@@ -141,6 +146,27 @@ export default function TransactionPage() {
         setShowCheckout(false);
         setCheckoutSuccess(false);
         setSavedInvoice(null);
+    };
+
+    const handlePhoneChange = (e) => {
+        let val = e.target.value;
+        // Remove single quote and spaces/dashes for processing
+        val = val.replace(/['\s-]/g, '');
+        // Replace +62 or 62 at the beginning with 0
+        if (val.startsWith('+62')) {
+            val = '0' + val.substring(3);
+        } else if (val.startsWith('62')) {
+            val = '0' + val.substring(2);
+        }
+        // Remove any remaining non-digit characters
+        val = val.replace(/\D/g, '');
+        
+        // Add single quote if starts with 0
+        if (val.startsWith('0')) {
+            val = "'" + val;
+        }
+        
+        setCustomerWa(val);
     };
 
     return (
@@ -162,9 +188,9 @@ export default function TransactionPage() {
                     />
                     <Input
                         label="No. WhatsApp"
-                        placeholder="628123456789"
+                        placeholder="08123456789"
                         value={customerWa}
-                        onChange={(e) => setCustomerWa(e.target.value)}
+                        onChange={handlePhoneChange}
                     />
                 </div>
             </Card>
@@ -353,14 +379,18 @@ export default function TransactionPage() {
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-3">
                             <Button variant="success" onClick={handleWhatsApp}>
                                 <WhatsAppIcon className="w-5 h-5" />
-                                WhatsApp
+                                WA
+                            </Button>
+                            <Button variant="secondary" onClick={handlePreviewPdf}>
+                                <DocumentTextIcon className="w-5 h-5" />
+                                Preview
                             </Button>
                             <Button variant="gradient" onClick={handleGeneratePdf}>
                                 <PrinterIcon className="w-5 h-5" />
-                                Cetak PDF
+                                Cetak
                             </Button>
                         </div>
 
