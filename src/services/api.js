@@ -184,6 +184,13 @@ export async function getInvoices() {
 }
 
 /**
+ * Update invoice payment status
+ */
+export async function updateInvoiceStatus(invoice_id, payment_status) {
+    return apiRequest('updateInvoiceStatus', { invoice_id, payment_status });
+}
+
+/**
  * Get products list
  */
 export async function getProducts() {
