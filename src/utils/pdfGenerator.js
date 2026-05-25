@@ -190,23 +190,37 @@ async function buildInvoiceDoc(invoice, storeInfo) {
 
     // ===== QRIS CODE =====
     try {
-        // Load QRIS image using a CORS proxy
-        const qrDataUrl = await new Promise(async (resolve) => {
-            try {
-                const url = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjYUyC2_5VC54bTNaYH_FmEj5g3e2YGe0fjPaTQRjyRRsE3ezd7s-_s5a5lOQxsvSh5o_BRdVVxXbVy0WhADLGJ5l-G_V-xe1tWAYVfoT0BnXtak3XMUm-XVLCsZqPS5rWSFtVcIVtKRcfofS0zgMPGu8O6JSPwCsUrK8MEi7FjsYKAn556PdBa5SmRamSU/s16000/Desain%20tanpa%20judul.png';
-                // Using allorigins to bypass CORS
-                const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
-                if (!res.ok) throw new Error('Network response was not ok');
-                const blob = await res.blob();
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = () => resolve(null);
-                reader.readAsDataURL(blob);
-            } catch (err) {
-                console.error('Failed to load QRIS image:', err);
-                resolve(null);
-            }
-        });
+        const qrUrl = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjYUyC2_5VC54bTNaYH_FmEj5g3e2YGe0fjPaTQRjyRRsE3ezd7s-_s5a5lOQxsvSh5o_BRdVVxXbVy0WhADLGJ5l-G_V-xe1tWAYVfoT0BnXtak3XMUm-XVLCsZqPS5rWSFtVcIVtKRcfofS0zgMPGu8O6JSPwCsUrK8MEi7FjsYKAn556PdBa5SmRamSU/s16000/Desain%20tanpa%20judul.png';
+        
+        // Cek cache di localStorage agar tidak lemot
+        let qrDataUrl = localStorage.getItem('qris_cache_' + qrUrl);
+        
+        if (!qrDataUrl) {
+            // Jika belum ada di cache, fetch dari proxy
+            qrDataUrl = await new Promise(async (resolve) => {
+                try {
+                    const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(qrUrl));
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    const blob = await res.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const result = reader.result;
+                        // Simpan ke cache
+                        try {
+                            localStorage.setItem('qris_cache_' + qrUrl, result);
+                        } catch (e) {
+                            console.warn('Gagal menyimpan cache QRIS (mungkin terlalu besar)', e);
+                        }
+                        resolve(result);
+                    };
+                    reader.onerror = () => resolve(null);
+                    reader.readAsDataURL(blob);
+                } catch (err) {
+                    console.error('Failed to load QRIS image:', err);
+                    resolve(null);
+                }
+            });
+        }
 
         if (qrDataUrl) {
             // Separator before QRIS
@@ -222,11 +236,15 @@ async function buildInvoiceDoc(invoice, storeInfo) {
             doc.text('Scan QRIS untuk Pembayaran', pageWidth / 2, yPos, { align: 'center' });
             yPos += 2;
 
+            // Tentukan format gambar (PNG atau JPEG)
+            const isPng = qrDataUrl.includes('image/png') || qrUrl.toLowerCase().endsWith('.png');
+            const imgFormat = isPng ? 'PNG' : 'JPEG';
+
             // Add QRIS image
             const qrWidth = 40;
             const qrHeight = 40;
             const qrX = (pageWidth - qrWidth) / 2;
-            doc.addImage(qrDataUrl, 'JPEG', qrX, yPos, qrWidth, qrHeight);
+            doc.addImage(qrDataUrl, imgFormat, qrX, yPos, qrWidth, qrHeight);
             yPos += qrHeight + 3;
         }
 
