@@ -2,9 +2,9 @@ import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 
 /**
- * Generate invoice PDF with logo in header, watermark, and QR code for validation
+ * Helper to build the PDF document
  */
-export async function generateInvoicePdf(invoice, storeInfo) {
+async function buildInvoiceDoc(invoice, storeInfo) {
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -188,64 +188,50 @@ export async function generateInvoicePdf(invoice, storeInfo) {
     doc.text(formatCurrency(finalTotal), pageWidth - margin, yPos, { align: 'right' });
     yPos += lineHeight + 3;
 
-    // ===== QR CODE FOR VALIDATION =====
+    // ===== QRIS CODE =====
     try {
-        // Format date for QR
-        const qrDate = new Date(invoice.date);
-        const formattedQrDate = qrDate.toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-
-        // Format currency for QR
-        const formattedTotal = 'Rp ' + new Intl.NumberFormat('id-ID').format(finalTotal);
-
-        // Create human-readable validation data
-        const validationData = [
-            '= VALIDASI STRUK =',
-            '',
-            invoice.invoice_id || 'INV-0000',
-            '',
-            'Customer: ' + (invoice.customer_name || 'Pelanggan'),
-            'Total: ' + formattedTotal,
-            'Tgl: ' + formattedQrDate,
-            'Item: ' + items.length + ' produk',
-            '',
-            '=== SI-ACIL by Mas Alfy ==='
-        ].join('\n');
-
-        // Generate QR code as data URL
-        const qrDataUrl = await QRCode.toDataURL(validationData, {
-            width: 100,
-            margin: 1,
-            color: {
-                dark: '#000000',
-                light: '#ffffff'
+        // Load QRIS image using a CORS proxy
+        const qrDataUrl = await new Promise(async (resolve) => {
+            try {
+                const url = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjYUyC2_5VC54bTNaYH_FmEj5g3e2YGe0fjPaTQRjyRRsE3ezd7s-_s5a5lOQxsvSh5o_BRdVVxXbVy0WhADLGJ5l-G_V-xe1tWAYVfoT0BnXtak3XMUm-XVLCsZqPS5rWSFtVcIVtKRcfofS0zgMPGu8O6JSPwCsUrK8MEi7FjsYKAn556PdBa5SmRamSU/s16000/Desain%20tanpa%20judul.png';
+                // Using allorigins to bypass CORS
+                const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+                if (!res.ok) throw new Error('Network response was not ok');
+                const blob = await res.blob();
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            } catch (err) {
+                console.error('Failed to load QRIS image:', err);
+                resolve(null);
             }
         });
 
-        // Separator before QR
-        doc.setDrawColor(150);
-        doc.setLineDashPattern([1, 1], 0);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 3;
+        if (qrDataUrl) {
+            // Separator before QRIS
+            doc.setDrawColor(150);
+            doc.setLineDashPattern([1, 1], 0);
+            doc.line(margin, yPos, pageWidth - margin, yPos);
+            yPos += 3;
 
-        // QR Code label
-        doc.setFontSize(6);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100);
-        doc.text('Scan untuk validasi struk', pageWidth / 2, yPos, { align: 'center' });
-        yPos += 2;
+            // QRIS label
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0);
+            doc.text('Scan QRIS untuk Pembayaran', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 2;
 
-        // Add QR code image
-        const qrSize = 22;
-        const qrX = (pageWidth - qrSize) / 2;
-        doc.addImage(qrDataUrl, 'PNG', qrX, yPos, qrSize, qrSize);
-        yPos += qrSize + 3;
+            // Add QRIS image
+            const qrWidth = 40;
+            const qrHeight = 40;
+            const qrX = (pageWidth - qrWidth) / 2;
+            doc.addImage(qrDataUrl, 'JPEG', qrX, yPos, qrWidth, qrHeight);
+            yPos += qrHeight + 3;
+        }
 
     } catch (e) {
-        console.error('QR Code generation error:', e);
+        console.error('QRIS Code generation error:', e);
         yPos += 3;
     }
 
@@ -267,7 +253,24 @@ export async function generateInvoicePdf(invoice, storeInfo) {
     doc.setTextColor(130);
     doc.text('Powered by SI-ACIL @masalfy', pageWidth / 2, yPos, { align: 'center' });
 
-    // Save
+    return doc;
+}
+
+/**
+ * Generate invoice PDF and save it (download)
+ */
+export async function generateInvoicePdf(invoice, storeInfo) {
+    const doc = await buildInvoiceDoc(invoice, storeInfo);
     const fileName = 'Invoice_' + (invoice.invoice_id || 'nota') + '_' + Date.now() + '.pdf';
     doc.save(fileName);
+}
+
+/**
+ * Generate invoice PDF and open in new tab (preview)
+ */
+export async function previewInvoicePdf(invoice, storeInfo) {
+    const doc = await buildInvoiceDoc(invoice, storeInfo);
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
 }
