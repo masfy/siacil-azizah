@@ -196,12 +196,6 @@ export default function TransactionPage() {
                         value={customerWa}
                         onChange={handlePhoneChange}
                     />
-                    <Input
-                        label="Catatan (Opsional)"
-                        placeholder="Contoh: Jangan pedas"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                    />
                 </div>
             </Card>
 
@@ -277,9 +271,19 @@ export default function TransactionPage() {
                 )}
             </div>
 
-            {/* Total & Checkout */}
+            {/* Catatan, Total & Checkout */}
             {items.length > 0 && (
-                <Card padding="md" className="animate-slide-up bg-gray-900 border-0">
+                <div className="space-y-3">
+                    <Card padding="md" className="animate-slide-up">
+                        <Input
+                            label="Catatan (Opsional)"
+                            placeholder="Contoh: Jangan pedas / Dibungkus"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                        />
+                    </Card>
+
+                    <Card padding="md" className="animate-slide-up bg-gray-900 border-0">
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-gray-400">Total</span>
                         <span className="text-2xl font-bold text-white">{formatCurrency(total)}</span>
@@ -288,7 +292,8 @@ export default function TransactionPage() {
                         <CheckIcon className="w-5 h-5" />
                         Checkout
                     </Button>
-                </Card>
+                    </Card>
+                </div>
             )}
 
             {/* Add Item Modal */}
@@ -367,6 +372,12 @@ export default function TransactionPage() {
                                 <span className="text-gray-500">Jumlah Item</span>
                                 <span className="font-medium text-gray-900">{items.length} item</span>
                             </div>
+                            {notes && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Catatan</span>
+                                    <span className="font-medium text-gray-900 text-right max-w-[60%]">{notes}</span>
+                                </div>
+                            )}
                             <div className="h-px bg-gray-200 my-2" />
                             <div className="flex justify-between">
                                 <span className="font-semibold text-gray-900">Total</span>
