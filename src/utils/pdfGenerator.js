@@ -188,6 +188,22 @@ async function buildInvoiceDoc(invoice, storeInfo) {
     doc.text(formatCurrency(finalTotal), pageWidth - margin, yPos, { align: 'right' });
     yPos += lineHeight + 3;
 
+    // ===== CATATAN =====
+    if (invoice.notes) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Catatan:', margin, yPos);
+        yPos += lineHeight - 1;
+        
+        doc.setFont('helvetica', 'italic');
+        const notesLines = doc.splitTextToSize(invoice.notes, pageWidth - margin * 2);
+        notesLines.forEach(line => {
+            doc.text(line, margin, yPos);
+            yPos += lineHeight - 1;
+        });
+        yPos += 3;
+    }
+
     // ===== QRIS CODE =====
     try {
         const qrUrl = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjYUyC2_5VC54bTNaYH_FmEj5g3e2YGe0fjPaTQRjyRRsE3ezd7s-_s5a5lOQxsvSh5o_BRdVVxXbVy0WhADLGJ5l-G_V-xe1tWAYVfoT0BnXtak3XMUm-XVLCsZqPS5rWSFtVcIVtKRcfofS0zgMPGu8O6JSPwCsUrK8MEi7FjsYKAn556PdBa5SmRamSU/s16000/Desain%20tanpa%20judul.png';
@@ -196,29 +212,47 @@ async function buildInvoiceDoc(invoice, storeInfo) {
         let qrDataUrl = localStorage.getItem('qris_cache_' + qrUrl);
         
         if (!qrDataUrl) {
-            // Jika belum ada di cache, fetch dari proxy
-            qrDataUrl = await new Promise(async (resolve) => {
-                try {
-                    const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(qrUrl));
-                    if (!res.ok) throw new Error('Network response was not ok');
-                    const blob = await res.blob();
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const result = reader.result;
-                        // Simpan ke cache
-                        try {
-                            localStorage.setItem('qris_cache_' + qrUrl, result);
-                        } catch (e) {
-                            console.warn('Gagal menyimpan cache QRIS (mungkin terlalu besar)', e);
-                        }
-                        resolve(result);
-                    };
-                    reader.onerror = () => resolve(null);
-                    reader.readAsDataURL(blob);
-                } catch (err) {
-                    console.error('Failed to load QRIS image:', err);
-                    resolve(null);
-                }
+            qrDataUrl = await new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const dataURL = canvas.toDataURL('image/png');
+                    try {
+                        localStorage.setItem('qris_cache_' + qrUrl, dataURL);
+                    } catch (e) {}
+                    resolve(dataURL);
+                };
+                img.onerror = () => {
+                    // Jika belum ada di cache atau gagal load langsung, fetch dari proxy
+                    fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(qrUrl))
+                        .then(res => {
+                            if (!res.ok) throw new Error('Network response was not ok');
+                            return res.blob();
+                        })
+                        .then(blob => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                const result = reader.result;
+                                try {
+                                    localStorage.setItem('qris_cache_' + qrUrl, result);
+                                } catch (e) {
+                                    console.warn('Gagal menyimpan cache QRIS (mungkin terlalu besar)', e);
+                                }
+                                resolve(result);
+                            };
+                            reader.readAsDataURL(blob);
+                        })
+                        .catch(err => {
+                            console.error('Failed to load QRIS image:', err);
+                            resolve(null);
+                        });
+                };
+                img.src = qrUrl;
             });
         }
 
