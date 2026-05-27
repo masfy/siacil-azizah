@@ -210,6 +210,12 @@ export default function InvoiceHistoryPage() {
                                 <span className="text-gray-500">Tanggal</span>
                                 <span className="font-medium text-gray-900">{formatDate(selectedInvoice.date)}</span>
                             </div>
+                            {selectedInvoice.notes && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Catatan</span>
+                                    <span className="font-medium text-gray-900 text-right max-w-[60%]">{selectedInvoice.notes}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                                 <span className="text-gray-500">Status Pembayaran</span>
                                 <button 
