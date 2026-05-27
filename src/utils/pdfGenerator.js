@@ -206,7 +206,7 @@ async function buildInvoiceDoc(invoice, storeInfo) {
 
     // ===== QRIS CODE =====
     try {
-        const qrUrl = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjYUyC2_5VC54bTNaYH_FmEj5g3e2YGe0fjPaTQRjyRRsE3ezd7s-_s5a5lOQxsvSh5o_BRdVVxXbVy0WhADLGJ5l-G_V-xe1tWAYVfoT0BnXtak3XMUm-XVLCsZqPS5rWSFtVcIVtKRcfofS0zgMPGu8O6JSPwCsUrK8MEi7FjsYKAn556PdBa5SmRamSU/s16000/Desain%20tanpa%20judul.png';
+        const qrUrl = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjxRYT63BuPLq8wIkxG4rRoj1IXUG4pRu7Q8culi5TgWdTZ3VRV5-7Rr9UqaiAVcBXmbq-uhWLQUBq3UElsYJWu3HBMlvcX_WA9SrSDWe9y1SPWV9jcZyfalEu1ex1H89qc6beXRN42SnRb9EP8a7_A5-GF7PjsMKlhA2lMPUavOll52qUeHVkLMlEGwHh3/s16000/Desain%20tanpa%20judul.png';
         
         // Cek cache di localStorage agar tidak lemot
         let qrDataUrl = localStorage.getItem('qris_cache_' + qrUrl);
@@ -215,6 +215,8 @@ async function buildInvoiceDoc(invoice, storeInfo) {
             qrDataUrl = await new Promise((resolve) => {
                 const img = new Image();
                 img.crossOrigin = 'Anonymous';
+                
+                // Coba ambil dari file lokal (public/qris.png) terlebih dahulu jika ada, lalu fallback ke URL Google
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     canvas.width = img.width;
@@ -227,32 +229,62 @@ async function buildInvoiceDoc(invoice, storeInfo) {
                     } catch (e) {}
                     resolve(dataURL);
                 };
+                
+                let isTryingLocal = true;
+                
                 img.onerror = () => {
-                    // Jika belum ada di cache atau gagal load langsung, fetch dari proxy
-                    fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(qrUrl))
-                        .then(res => {
-                            if (!res.ok) throw new Error('Network response was not ok');
-                            return res.blob();
-                        })
-                        .then(blob => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                                const result = reader.result;
-                                try {
-                                    localStorage.setItem('qris_cache_' + qrUrl, result);
-                                } catch (e) {
-                                    console.warn('Gagal menyimpan cache QRIS (mungkin terlalu besar)', e);
-                                }
-                                resolve(result);
-                            };
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch(err => {
-                            console.error('Failed to load QRIS image:', err);
+                    if (isTryingLocal) {
+                        // Jika lokal gagal (file tidak ada), coba URL Google
+                        isTryingLocal = false;
+                        img.src = qrUrl;
+                        return;
+                    }
+
+                    // Fallback using multiple proxies
+                    const proxies = [
+                        'https://api.allorigins.win/raw?url=',
+                        'https://api.codetabs.com/v1/proxy?quest='
+                    ];
+                    
+                    const tryProxy = (index) => {
+                        if (index >= proxies.length) {
+                            console.error('All proxies failed to load QRIS image');
                             resolve(null);
-                        });
+                            return;
+                        }
+                        
+                        fetch(proxies[index] + encodeURIComponent(qrUrl))
+                            .then(res => {
+                                if (!res.ok) throw new Error('Proxy failed');
+                                return res.blob();
+                            })
+                            .then(blob => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    let result = reader.result;
+                                    // jsPDF requires valid image mime type, some proxies return octet-stream
+                                    if (result && result.startsWith('data:application/octet-stream')) {
+                                        result = result.replace('data:application/octet-stream', 'data:image/png');
+                                    }
+                                    try {
+                                        localStorage.setItem('qris_cache_' + qrUrl, result);
+                                    } catch (e) {
+                                        console.warn('Gagal menyimpan cache QRIS', e);
+                                    }
+                                    resolve(result);
+                                };
+                                reader.readAsDataURL(blob);
+                            })
+                            .catch(err => {
+                                tryProxy(index + 1);
+                            });
+                    };
+                    
+                    tryProxy(0);
                 };
-                img.src = qrUrl;
+                
+                // Mulai dengan mencoba memuat dari folder public (sangat cepat jika ada)
+                img.src = '/qris.png';
             });
         }
 
