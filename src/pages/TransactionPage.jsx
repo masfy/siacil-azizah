@@ -11,6 +11,7 @@ export default function TransactionPage() {
     const [items, setItems] = useState([]);
     const [customerName, setCustomerName] = useState('');
     const [customerWa, setCustomerWa] = useState('');
+    const [notes, setNotes] = useState('');
     const [loading, setSaving] = useState(false);
     const [showAddItem, setShowAddItem] = useState(false);
     const [showCheckout, setShowCheckout] = useState(false);
@@ -93,6 +94,7 @@ export default function TransactionPage() {
             const invoiceData = {
                 customer_name: customerName || 'Pelanggan',
                 customer_wa: customerWa || '',
+                notes: notes || '',
                 items_json: JSON.stringify(items),
                 total_amount: total,
                 date: new Date().toISOString(),
@@ -113,6 +115,7 @@ export default function TransactionPage() {
                 invoice_id: `INV-${Date.now()}`,
                 customer_name: customerName || 'Pelanggan',
                 customer_wa: customerWa || '',
+                notes: notes || '',
                 items_json: JSON.stringify(items),
                 total_amount: total,
                 date: new Date().toISOString(),
@@ -143,6 +146,7 @@ export default function TransactionPage() {
         setItems([]);
         setCustomerName('');
         setCustomerWa('');
+        setNotes('');
         setShowCheckout(false);
         setCheckoutSuccess(false);
         setSavedInvoice(null);
@@ -191,6 +195,12 @@ export default function TransactionPage() {
                         placeholder="08123456789"
                         value={customerWa}
                         onChange={handlePhoneChange}
+                    />
+                    <Input
+                        label="Catatan (Opsional)"
+                        placeholder="Contoh: Jangan pedas"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
                     />
                 </div>
             </Card>
